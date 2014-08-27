@@ -10,6 +10,8 @@ def log (valor):
 
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
+		self.advanceTime = False
+		self.time = None
 		self.isConstrained = False
 		self.isRegulated = False
 		self.isRegistered = False
@@ -21,8 +23,7 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 		self.structAttributeHandle = rtia.getAttributeHandle("StructAttribute", self.classHandle)
 		self.fomAttributeHandle = rtia.getAttributeHandle("FOMAttribute", self.classHandle)
 
-		rtia.publishObjectClass(self.classHandle,
-		    [self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
+		rtia.publishObjectClass(self.classHandle,[self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
 		self.myObject = rtia.registerObjectInstance(self.classHandle, "HAF")
 
 	def terminate(self):
@@ -55,6 +56,8 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 	def timeConstrainedEnabled (self, time):
 		self.isConstrained = True
 		self.log("MyAmbassador: Time Constrained Enabled\n")
+	def timeAdvanceGrant (self, time):
+		self.advanceTime = True
 
 	def log(self, valor):
 		print ("\033[36m" + valor + "\033[0;0m")
@@ -99,12 +102,10 @@ x = input ("WAITING FOR USERS!\n")
 
 while (mya.isAnnounced == False):
 	rtia.tick()
-log("Master: is Announced\n")
 rtia.synchronizationPointAchieved("ReadyToRun")
 
 while (mya.isReady == False):
 	rtia.tick()
-log("Master : Ready Run!!!\n")
 
 
 ########## Time Organization ###################
@@ -114,13 +115,11 @@ rtia.enableTimeRegulation(federateTime, lookahead)
 
 while (mya.isRegulated == False ):
 	rtia.tick()
-log("Master : is Regulated\n")
 
 rtia.enableTimeConstrained()
 
 while (mya.isConstrained == False):
 	rtia.tick()
-log("Master : Is Constrained\n")
 ###############################################
 
 
@@ -129,13 +128,22 @@ log("Master : Is Constrained\n")
 try:
     a= 3.14
     while(1):
+	########## Main Loop ###########
+
         a = a + 1.0
-        rtia.updateAttributeValues(mya.myObject,
-            {mya.textAttributeHandle:"text",
-            mya.structAttributeHandle:struct.pack('hhl', 1, 2, 3),
-            mya.fomAttributeHandle:fom.HLAfloat32BE.pack(a)},
-            "update")
+        rtia.updateAttributeValues(mya.myObject, {mya.textAttributeHandle:"TESTANDO   ", mya.structAttributeHandle:struct.pack('hhl', 1, 2, 3), mya.fomAttributeHandle:fom.HLAfloat32BE.pack(a)},"update")
+	#print "tick"
+	#rtia.tick()
         rtia.tick(1.0, 1.0)
+	
+	
+	###### Time management ##########
+	time = rtia.queryFederateTime()
+	rtia.timeAdvanceRequest(time)
+	while (mya.advanceTime == False):
+		rtia.tick()
+	mya.advanceTime = False
+	#################################
 except KeyboardInterrupt:
     print "\033[0;0m Keyboard Interrupt"
 

@@ -8,18 +8,33 @@ def log (valor):
 	print str(valor)
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
+		#Variables
+		self.advanceTime = False
 		self.isRegistered = False
 		self.isAnnounced = False
 		self.isReady = False
 		self.isConstrained = False
 		self.isRegulating = False
+		#configuring data to be received
 		self.classHandle = rtia.getObjectClassHandle("SampleClass")
-
 		self.textAttributeHandle = rtia.getAttributeHandle("TextAttribute", self.classHandle)
 		self.structAttributeHandle = rtia.getAttributeHandle("StructAttribute", self.classHandle)
 		self.fomAttributeHandle = rtia.getAttributeHandle("FOMAttribute", self.classHandle)
 
 		rtia.subscribeObjectClassAttributes(self.classHandle,[self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
+
+	def reflectAttributeValues(self, object, attributes, tag, order, transport, time=None, retraction=None):
+		print ("foi chamado")
+		if self.textAttributeHandle in attributes:
+			print("REFLECT", attributes[self.textAttributeHandle])
+
+		if self.structAttributeHandle in attributes:
+			structValue = struct.unpack('hhl', attributes[self.structAttributeHandle])
+			print("REFLECT", structValue)
+
+		if self.fomAttributeHandle in attributes:
+			fomValue, size = fom.HLAfloat32BE.unpack(attributes[self.fomAttributeHandle])
+			print("REFLECT", fomValue)
 
 
 	def terminate(self):
@@ -53,18 +68,8 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 	def discoverObjectInstance(self, object, objectclass, name):
 		print("DISCOVER", name)
 		rtia.requestObjectAttributeValueUpdate(object, [self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
-
-	def reflectAttributeValues(self, object, attributes, tag, order, transport, time=None, retraction=None):
-		if self.textAttributeHandle in attributes:
-			print("REFLECT", attributes[self.textAttributeHandle])
-
-		if self.structAttributeHandle in attributes:
-			structValue = struct.unpack('hhl', attributes[self.structAttributeHandle])
-			print("REFLECT", structValue)
-
-		if self.fomAttributeHandle in attributes:
-			fomValue, size = fom.HLAfloat32BE.unpack(attributes[self.fomAttributeHandle])
-			print("REFLECT", fomValue)
+	def timeAdvanceGrant (self, time):
+		self.advanceTime = True
 
 
 
@@ -109,12 +114,12 @@ while  (mya.isRegistered == False or mya.isAnnounced == False):
 print "tick"
 
 ####### Esperando outros Federados ############
-x = input ("Waiting others federators")
+x = input ("Waiting others federators\n")
 
 #######Archieve Synchronized Point  ###########
 
 rtia.synchronizationPointAchieved("ReadyToRun")
-while (mya.isReady == False or mya.isAnnounced == False):
+while (mya.isReady == False):
 	rtia.tick()
 print ("MyAmbassador : Is Ready to run ")
 
@@ -134,8 +139,17 @@ print ("MyAmbassador: Time is Regulating and is Constrained")
 
 try:
     while(1):
-	print "oi"
+	########## Main Loop #############
+
         rtia.tick(1.0, 1.0)
+
+	#######  Time Management  ########
+	time = rtia.queryFederateTime()
+	rtia.timeAdvanceRequest(time)
+	while (mya.advanceTime == False):
+		rtia.tick()
+	mya.advanceTime = False
+	##################################
 except KeyboardInterrupt:
     pass
 
