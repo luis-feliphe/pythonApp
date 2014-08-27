@@ -4,10 +4,15 @@ import hla.rti
 import hla.omt as fom
 
 import struct
-
+def log (valor):
+	print str(valor)
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
 		self.isRegistered = False
+		self.isAnnounced = False
+		self.isReady = False
+		self.isConstrained = False
+		self.isRegulating = False
 		self.classHandle = rtia.getObjectClassHandle("SampleClass")
 
 		self.textAttributeHandle = rtia.getAttributeHandle("TextAttribute", self.classHandle)
@@ -32,7 +37,18 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 		print ("MyAmbassador: Registration Point Succeeded")
 
 	def announceSynchronizationPoint(self, label, tag):
+		self.isAnnounced = True
 		print ("MyAmbassador: Announce Synchronization Point")
+
+	def federationSynchronized (self,  label):
+		self.isReady = True
+		print ("MyAmbassador: Ready to run ")
+
+	def timeConstrainedEnabled (self, time):
+		self.isConstrained = True
+
+	def timeRegulationEnabled (self, time): 
+		self.isRegulating = True
 
 	def discoverObjectInstance(self, object, objectclass, name):
 		print("DISCOVER", name)
@@ -55,19 +71,32 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 print("Create ambassador")
 rtia = hla.rti.RTIAmbassador()
 
+mya = MyAmbassador()
+
+########## CRIA FEDERACAO ########
+
+
+
 try:
     rtia.createFederationExecution("uav", "uav.fed")
-    print("Federation created.")
+    log("Federation created.\n")
 except hla.rti.FederationExecutionAlreadyExists:
-    print("Federation already exists.")
+    log("Federation already exists.\n")
 
+
+
+
+####### Join into a Federation ###############
 mya = MyAmbassador()
-rtia.joinFederationExecution("receptor", "uav", mya)
+rtia.joinFederationExecution("uav-recv", "uav", mya)
 
 mya.initialize()
 
 
-print ("inicialized!")
+log("inicialized!\n")
+
+
+######### Announce Synchronization Point ######
 
 
 label = "ReadyToRun"
@@ -75,15 +104,37 @@ tag =  bytes ("hi!")
 rtia.registerFederationSynchronizationPoint(label, tag)
 print("Synchronization Point Register!")
 
-while  (mya.isRegistered == False ):
-	print("tick")
+while  (mya.isRegistered == False or mya.isAnnounced == False):
 	rtia.tick()
+print "tick"
 
+####### Esperando outros Federados ############
 x = input ("Waiting others federators")
 
+#######Archieve Synchronized Point  ###########
+
+rtia.synchronizationPointAchieved("ReadyToRun")
+while (mya.isReady == False or mya.isAnnounced == False):
+	rtia.tick()
+print ("MyAmbassador : Is Ready to run ")
+
+##### Enable Time Policy #####################
+currentTime =rtia.queryFederateTime()
+lookAhead = rtia.queryLookahead()
+rtia.enableTimeRegulation(currentTime, lookAhead)
+
+while (mya.isRegulating == False):
+	rtia.tick()
+
+rtia.enableTimeConstrained()
+while (mya.isConstrained == False):
+	rtia.tick()
+print ("MyAmbassador: Time is Regulating and is Constrained")
+############################################
 
 try:
     while(1):
+	print "oi"
         rtia.tick(1.0, 1.0)
 except KeyboardInterrupt:
     pass

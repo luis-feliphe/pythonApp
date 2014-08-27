@@ -6,7 +6,7 @@ import hla.omt as fom
 import struct
 
 def log (valor):
-	pass#	print ("\033[34m" + valor + "\033[0;0m")
+	print ("\033[34m" + valor + "\033[0;0m")
 
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
