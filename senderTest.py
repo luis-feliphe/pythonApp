@@ -17,14 +17,23 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 		self.isRegistered = False
 		self.isAnnounced= False
 		self.isReady = False
-		self.classHandle = rtia.getObjectClassHandle("SampleClass")
+		#######  Ajustando objetos ###########
+                self.classHandle = rtia.getObjectClassHandle("ObjectRoot.robot")
 
-		self.textAttributeHandle = rtia.getAttributeHandle("TextAttribute", self.classHandle)
-		self.structAttributeHandle = rtia.getAttributeHandle("StructAttribute", self.classHandle)
-		self.fomAttributeHandle = rtia.getAttributeHandle("FOMAttribute", self.classHandle)
-
-		rtia.publishObjectClass(self.classHandle,[self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
-		self.myObject = rtia.registerObjectInstance(self.classHandle, "HAF")
+                self.batteryHandle = rtia.getAttributeHandle("battery", self.classHandle)
+                self.temperatureHandle = rtia.getAttributeHandle("temperature", self.classHandle)
+                self.sensor1Handle = rtia.getAttributeHandle("sensor1", self.classHandle)
+                self.sensor2Handle = rtia.getAttributeHandle("sensor2", self.classHandle)
+                self.sensor3Handle = rtia.getAttributeHandle("sensor3", self.classHandle)
+                self.gpsHandle = rtia.getAttributeHandle("gps", self.classHandle)
+                self.compassHandle = rtia.getAttributeHandle("compass", self.classHandle)
+                self.gotoHandle = rtia.getAttributeHandle("goto", self.classHandle)
+                self.rotateHandle = rtia.getAttributeHandle("rotate", self.classHandle)
+                self.activateHandle = rtia.getAttributeHandle("activate", self.classHandle)
+		#####################################
+                rtia.publishObjectClass(self.classHandle,[self.batteryHandle, self.temperatureHandle, self.sensor1Handle, self.sensor2Handle, self.sensor3Handle, self.gpsHandle, self.compassHandle, self.gotoHandle, self.rotateHandle, self.activateHandle])
+                self.myObject = rtia.registerObjectInstance(self.classHandle, "HAF")
+		#####################################
 
 	def terminate(self):
 		rtia.deleteObjectInstance(self.myObject, "HAF")
@@ -70,7 +79,7 @@ rtia = hla.rti.RTIAmbassador()
 
 ####### Try Create a Federation ##############
 try:
-    rtia.createFederationExecution("uav", "uav.fed")
+    rtia.createFederationExecution("uav", "PyhlaToPtolemy.fed")
     log("Federation created.\n")
 except hla.rti.FederationExecutionAlreadyExists:
     log("Federation already exists.\n")
@@ -126,24 +135,50 @@ while (mya.isConstrained == False):
 
 
 try:
-    a= 3.14
-    while(1):
+	a= 1.0
+	import random
+	temperatura = 25
+	contBateria = 1
+	bateria= 100
+	x = 0
+	y = 0
+	z = 0
 	########## Main Loop ###########
+	while(1):
+                if (bateria> 5):
+                        x = random.sample([x+ -2, x+ -1,x, x+ 1, x + 2, x, x], 1)[0]
+                        y = random.sample([x+ -2, x+ -1,x, x+ 1, x + 2, y, y], 1)[0]
+                        z = random.sample([x+ -2, x+ -1,x, x+ 1, x + 2, z, z], 1)[0]
+                        temperatura+= random.sample([-1, -2, 0 ,1,2 ,3, 1, 2, 0, 0], 1)[0]
+                else:
+                        temperatura+= random.sample([-1, -2, -3, 0 ,1,2,-1,-2], 1)[0]
+                contBateria+=1
+                if (contBateria%3 == 0 and bateria> 5):
+                        bateria-= 1
+                #### publish and subscribe #####
+                print ("Temperatura: "+ str(temperatura) + " bateria : " + str ( bateria ))
+                a = a + 1.0
+                rtia.updateAttributeValues(mya.myObject,
+                        {mya.batteryHandle:str(bateria)+str(" "),
+                        mya.temperatureHandle: str(temperatura)+" ",
+                        mya.sensor1Handle:"sensor1",
+                        mya.sensor2Handle:"sensor2",
+                        mya.sensor3Handle:"sensor3",
+                        mya.gpsHandle: str(str(x)+ ", " + str(y) + ", "+ str(z) + " "),
+                        mya.compassHandle:"compasso",
+                        mya.gotoHandle:"noGoto",
+                        mya.rotateHandle:"noRotate",
+                        mya.activateHandle:"noActivate"},
+                        "update")
+		rtia.tick(1.0, 1.0)
 
-        a = a + 1.0
-        rtia.updateAttributeValues(mya.myObject, {mya.textAttributeHandle:"TESTANDO   ", mya.structAttributeHandle:struct.pack('hhl', 1, 2, 3), mya.fomAttributeHandle:fom.HLAfloat32BE.pack(a)},"update")
-	#print "tick"
-	#rtia.tick()
-        rtia.tick(1.0, 1.0)
-	
-	
-	###### Time management ##########
-	time = rtia.queryFederateTime()
-	rtia.timeAdvanceRequest(time)
-	while (mya.advanceTime == False):
-		rtia.tick()
-	mya.advanceTime = False
-	#################################
+		###### Time management ##########
+		time = rtia.queryFederateTime()
+		rtia.timeAdvanceRequest(time)
+		while (mya.advanceTime == False):
+			rtia.tick()
+		mya.advanceTime = False
+		#################################
 except KeyboardInterrupt:
     print "\033[0;0m Keyboard Interrupt"
 

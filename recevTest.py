@@ -9,32 +9,62 @@ def log (valor):
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
 		#Variables
+		self.time = 0
 		self.advanceTime = False
 		self.isRegistered = False
 		self.isAnnounced = False
 		self.isReady = False
 		self.isConstrained = False
 		self.isRegulating = False
-		#configuring data to be received
-		self.classHandle = rtia.getObjectClassHandle("SampleClass")
-		self.textAttributeHandle = rtia.getAttributeHandle("TextAttribute", self.classHandle)
-		self.structAttributeHandle = rtia.getAttributeHandle("StructAttribute", self.classHandle)
-		self.fomAttributeHandle = rtia.getAttributeHandle("FOMAttribute", self.classHandle)
+		######## Configurando objetos a serem recebidos ##############
 
-		rtia.subscribeObjectClassAttributes(self.classHandle,[self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
+		self.classHandle = rtia.getObjectClassHandle("ObjectRoot.robot")
+
+		self.batteryHandle = rtia.getAttributeHandle("battery", self.classHandle)
+		self.temperatureHandle = rtia.getAttributeHandle("temperature", self.classHandle)
+		self.sensor1Handle = rtia.getAttributeHandle("sensor1", self.classHandle)
+		self.sensor2Handle = rtia.getAttributeHandle("sensor2", self.classHandle)
+		self.sensor3Handle = rtia.getAttributeHandle("sensor3", self.classHandle)
+		self.gpsHandle = rtia.getAttributeHandle("gps", self.classHandle)
+		self.compassHandle = rtia.getAttributeHandle("compass", self.classHandle)
+		self.gotoHandle = rtia.getAttributeHandle("goto", self.classHandle)
+		self.rotateHandle = rtia.getAttributeHandle("rotate", self.classHandle)
+		self.activateHandle = rtia.getAttributeHandle("activate", self.classHandle)
+
+		rtia.subscribeObjectClassAttributes(self.classHandle,[self.batteryHandle, self.temperatureHandle, self.sensor1Handle, self.sensor2Handle, self.sensor3Handle, self.gpsHandle, self.compassHandle, self.gotoHandle, self.rotateHandle, self.activateHandle])
+		##############################################################
 
 	def reflectAttributeValues(self, object, attributes, tag, order, transport, time=None, retraction=None):
-		print ("foi chamado")
-		if self.textAttributeHandle in attributes:
-			print("REFLECT", attributes[self.textAttributeHandle])
+		if self.batteryHandle in attributes:
+			#print("REFLECT", attributes[self.batteryHandle])
+			#print("Alguma coisa nao esta certa aqui")
+			pass
 
-		if self.structAttributeHandle in attributes:
-			structValue = struct.unpack('hhl', attributes[self.structAttributeHandle])
-			print("REFLECT", structValue)
+		if self.temperatureHandle in attributes:
+			#print("REFLECT", attributes[self.temperatureHandle])
+			valor = attributes[self.temperatureHandle]
+			"""valor =  valor.split(":")[1]
+			valor =  valor.replace("\"", "")
+			valor =  valor.replace("\\", "")
+			valor =  valor.replace(">", "")
+			valor =  valor.replace("<", "")
+			x, y  = valor.split(";")
+			import time
+			time.sleep(1)
+			print ("valor x : " + str (x) + " valor y : " + str (y))"""
+			print ("Received value: ", valor)
+			if (int (x) != 0):
+				#TODO Do something
+				#self.ser.write("<"+ str(x)+ ":" + str( y )+ ">")
+				#print ("dados enviados ao Arduino")
+				pass
 
-		if self.fomAttributeHandle in attributes:
-			fomValue, size = fom.HLAfloat32BE.unpack(attributes[self.fomAttributeHandle])
-			print("REFLECT", fomValue)
+
+		if self.sensor1Handle in attributes:
+			#print("REFLECT", attributes[self.sensor1Handle])
+			pass#print("REFLECT", attributes[self.sensor1Handle])
+
+
 
 
 	def terminate(self):
@@ -67,7 +97,7 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 
 	def discoverObjectInstance(self, object, objectclass, name):
 		print("DISCOVER", name)
-		rtia.requestObjectAttributeValueUpdate(object, [self.textAttributeHandle, self.structAttributeHandle, self.fomAttributeHandle])
+		rtia.requestObjectAttributeValueUpdate(object,[self.batteryHandle, self.temperatureHandle, self.sensor1Handle, self.sensor2Handle, self.sensor3Handle, self.gpsHandle, self.compassHandle, self.gotoHandle, self.rotateHandle, self.activateHandle])
 	def timeAdvanceGrant (self, time):
 		self.advanceTime = True
 
@@ -83,7 +113,7 @@ mya = MyAmbassador()
 
 
 try:
-    rtia.createFederationExecution("uav", "uav.fed")
+    rtia.createFederationExecution("uav", "PyhlaToPtolemy.fed")
     log("Federation created.\n")
 except hla.rti.FederationExecutionAlreadyExists:
     log("Federation already exists.\n")
