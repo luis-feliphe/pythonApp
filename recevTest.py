@@ -5,7 +5,8 @@ import hla.omt as fom
 
 import struct
 def log (valor):
-	print str(valor)
+	print ("\033[36m" + valor + "\033[0;0m")
+
 class MyAmbassador(hla.rti.FederateAmbassador):
 	def initialize(self):
 		#Variables
@@ -33,16 +34,25 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 
 		rtia.subscribeObjectClassAttributes(self.classHandle,[self.batteryHandle, self.temperatureHandle, self.sensor1Handle, self.sensor2Handle, self.sensor3Handle, self.gpsHandle, self.compassHandle, self.gotoHandle, self.rotateHandle, self.activateHandle])
 		##############################################################
+		rtia.publishObjectClass(self.classHandle,[self.batteryHandle, self.temperatureHandle, self.sensor1Handle, self.sensor2Handle, self.sensor3Handle, self.gpsHandle, self.compassHandle, self.gotoHandle, self.rotateHandle, self.activateHandle])
+		self.myObject = rtia.registerObjectInstance(self.classHandle)#, "ROBO_2")
 
 	def reflectAttributeValues(self, object, attributes, tag, order, transport, time=None, retraction=None):
+		bateria = None
+		temperatura = None
+		gps = None
+		if self.gpsHandle in attributes:
+			gps = attributes[self.gpsHandle]
 		if self.batteryHandle in attributes:
+			bateria = attributes [self.batteryHandle]
 			#print("REFLECT", attributes[self.batteryHandle])
 			#print("Alguma coisa nao esta certa aqui")
-			pass
+			#pass
 
 		if self.temperatureHandle in attributes:
 			#print("REFLECT", attributes[self.temperatureHandle])
 			valor = attributes[self.temperatureHandle]
+			temperatura = valor
 			"""valor =  valor.split(":")[1]
 			valor =  valor.replace("\"", "")
 			valor =  valor.replace("\\", "")
@@ -52,23 +62,25 @@ class MyAmbassador(hla.rti.FederateAmbassador):
 			import time
 			time.sleep(1)
 			print ("valor x : " + str (x) + " valor y : " + str (y))"""
-			print ("Received value: ", valor)
-			if (int (x) != 0):
+			#print ("Received value: ", valor)
+			#if (int (x) != 0):
 				#TODO Do something
 				#self.ser.write("<"+ str(x)+ ":" + str( y )+ ">")
 				#print ("dados enviados ao Arduino")
-				pass
+				#pass
 
 
 		if self.sensor1Handle in attributes:
 			#print("REFLECT", attributes[self.sensor1Handle])
 			pass#print("REFLECT", attributes[self.sensor1Handle])
+		self.log("Valores: Bateria: " +str (bateria) + "; Temperatura: " + str(temperatura) + "; GPS: " + str (gps))
 
-
+	def log (self, valor):
+		print ("\033[34m" + valor + "\033[0;0m")
 
 
 	def terminate(self):
-		rtia.deleteObjectInstance(self.myObject, "HAF")
+		rtia.deleteObjectInstance(self.myObject, "ROBO_2")
 
 	# RTI callbacks
 	def startRegistrationForObjectClass(*params):
@@ -113,7 +125,7 @@ mya = MyAmbassador()
 
 
 try:
-    rtia.createFederationExecution("uav", "PyhlaToPtolemy.fed")
+    rtia.createFederationExecution("ExampleFederation", "PyhlaToPtolemy.fed")
     log("Federation created.\n")
 except hla.rti.FederationExecutionAlreadyExists:
     log("Federation already exists.\n")
@@ -123,7 +135,7 @@ except hla.rti.FederationExecutionAlreadyExists:
 
 ####### Join into a Federation ###############
 mya = MyAmbassador()
-rtia.joinFederationExecution("uav-recv", "uav", mya)
+rtia.joinFederationExecution("uav-recv", "ExampleFederation", mya)
 
 mya.initialize()
 
@@ -169,10 +181,25 @@ print ("MyAmbassador: Time is Regulating and is Constrained")
 
 try:
     while(1):
+	### Testando envio de dados ####
+
+	rtia.updateAttributeValues(mya.myObject,
+                        {mya.batteryHandle:"ValorBBB",
+                        mya.temperatureHandle: "Valor BBB ",
+                        mya.sensor1Handle:"ValorBBB",
+                        mya.sensor2Handle:"Valor BBB",
+                        mya.sensor3Handle:"Valor BBB",
+                        mya.gpsHandle: "Valor BBB ",
+                        mya.compassHandle:"ValorBBB",
+                        mya.gotoHandle:"ValorBBB",
+                        mya.rotateHandle:"ValorBBB",
+                        mya.activateHandle:"ValorBBB"},
+                        "update")
+	
 	########## Main Loop #############
 
         rtia.tick(1.0, 1.0)
-
+	
 	#######  Time Management  ########
 	time = rtia.queryFederateTime()
 	rtia.timeAdvanceRequest(time)
